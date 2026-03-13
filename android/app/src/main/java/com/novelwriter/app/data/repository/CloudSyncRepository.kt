@@ -18,7 +18,7 @@ class CloudSyncRepository(private val context: Context) {
     fun getFolderName(uri: Uri): String =
         DocumentFile.fromTreeUri(context, uri)?.name ?: "Cloud Project"
 
-    /** Copy nwProject.nwx + content/*.nwd from a cloud folder into [destDir]. */
+    /** Copy nwProject.nwx and content .nwd files from a cloud folder into [destDir]. */
     suspend fun copyFromCloud(uri: Uri, destDir: File): Boolean = withContext(Dispatchers.IO) {
         try {
             val tree = DocumentFile.fromTreeUri(context, uri) ?: return@withContext false
@@ -40,7 +40,7 @@ class CloudSyncRepository(private val context: Context) {
         } catch (_: Exception) { false }
     }
 
-    /** Copy nwProject.nwx + content/*.nwd from [localDir] back to the cloud folder. */
+    /** Copy nwProject.nwx and content .nwd files from [localDir] back to the cloud folder. */
     suspend fun copyToCloud(localDir: File, uri: Uri): Boolean = withContext(Dispatchers.IO) {
         try {
             val tree = DocumentFile.fromTreeUri(context, uri) ?: return@withContext false
