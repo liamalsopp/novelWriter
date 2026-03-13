@@ -1,5 +1,7 @@
 package com.novelwriter.app.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +18,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.novelwriter.app.data.model.LocalProject
+import com.novelwriter.app.data.model.StorageType
 import com.novelwriter.app.viewmodel.ProjectsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,7 +29,12 @@ fun ProjectsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showCloneDialog by remember { mutableStateOf(false) }
+    var showAddMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val cloudFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri -> if (uri != null) viewModel.openCloudFolder(uri) }
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
@@ -43,8 +51,25 @@ fun ProjectsScreen(
                     IconButton(onClick = { viewModel.loadProjects() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                    IconButton(onClick = { showCloneDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Clone repository")
+                    Box {
+                        IconButton(onClick = { showAddMenu = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add project")
+                        }
+                        DropdownMenu(
+                            expanded = showAddMenu,
+                            onDismissRequest = { showAddMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Clone Git repository") },
+                                leadingIcon = { Icon(Icons.Default.Code, contentDescription = null) },
+                                onClick = { showAddMenu = false; showCloneDialog = true }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Open cloud / device folder") },
+                                leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null) },
+                                onClick = { showAddMenu = false; cloudFolderLauncher.launch(null) }
+                            )
+                        }
                     }
                 }
             )
@@ -53,9 +78,9 @@ fun ProjectsScreen(
         floatingActionButton = {
             if (uiState.projects.isEmpty() && !uiState.isLoading) {
                 ExtendedFloatingActionButton(
-                    onClick = { showCloneDialog = true },
-                    icon = { Icon(Icons.Default.Download, contentDescription = null) },
-                    text = { Text("Clone Repo") }
+                    onClick = { showAddMenu = true },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text("Add Novel") }
                 )
             }
         }
@@ -141,7 +166,8 @@ private fun ProjectCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.MenuBook,
+                if (project.storageType == StorageType.CLOUD_FOLDER) Icons.Default.Cloud
+                else Icons.Default.MenuBook,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(36.dp)
@@ -153,9 +179,14 @@ private fun ProjectCard(
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.titleMedium
                 )
-                if (!project.remoteUrl.isNullOrBlank()) {
+                val subtitle = when {
+                    project.storageType == StorageType.CLOUD_FOLDER -> "Cloud folder"
+                    !project.remoteUrl.isNullOrBlank() -> project.remoteUrl
+                    else -> null
+                }
+                if (subtitle != null) {
                     Text(
-                        project.remoteUrl,
+                        subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         maxLines = 1

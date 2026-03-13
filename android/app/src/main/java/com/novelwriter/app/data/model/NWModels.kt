@@ -42,9 +42,14 @@ data class NWDocument(
     val content: String        // everything after the %%~ header lines
 )
 
-// A locally stored novel project (may or may not have a git remote)
+// How the project is synced to the cloud
+enum class StorageType { GIT, CLOUD_FOLDER }
+
+// A locally stored novel project
 data class LocalProject(
     val name: String,
     val path: String,
-    val remoteUrl: String? = null
+    val remoteUrl: String? = null,
+    val storageType: StorageType = StorageType.GIT,
+    val cloudUri: String? = null   // SAF tree URI for CLOUD_FOLDER projects
 )

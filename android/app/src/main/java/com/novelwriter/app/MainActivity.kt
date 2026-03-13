@@ -29,11 +29,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.novelwriter.app.ui.screens.CloudSyncScreen
 import com.novelwriter.app.ui.screens.EditorScreen
 import com.novelwriter.app.ui.screens.ExplorerScreen
 import com.novelwriter.app.ui.screens.GitScreen
 import com.novelwriter.app.ui.screens.ProjectsScreen
 import com.novelwriter.app.ui.theme.NovelWriterTheme
+import com.novelwriter.app.viewmodel.CloudSyncViewModel
 import com.novelwriter.app.viewmodel.EditorViewModel
 import com.novelwriter.app.viewmodel.ExplorerViewModel
 import com.novelwriter.app.viewmodel.GitViewModel
@@ -126,7 +128,8 @@ fun NovelWriterApp() {
                 viewModel = vm,
                 onOpenProject = { project ->
                     navController.navigate(
-                        "explorer/${encodePath(project.path)}/${Uri.encode(project.name)}/${Uri.encode(project.remoteUrl ?: "")}"
+                        "explorer/${encodePath(project.path)}/${Uri.encode(project.name)}/" +
+                        "${Uri.encode(project.remoteUrl ?: "")}/${Uri.encode(project.cloudUri ?: "")}"
                     )
                 }
             )
@@ -134,31 +137,40 @@ fun NovelWriterApp() {
 
         // ── Project explorer (tree) ───────────────────────────────────────
         composable(
-            route = "explorer/{projectPath}/{projectName}/{remoteUrl}",
+            route = "explorer/{projectPath}/{projectName}/{remoteUrl}/{cloudUri}",
             arguments = listOf(
                 navArgument("projectPath") { type = NavType.StringType },
                 navArgument("projectName") { type = NavType.StringType },
-                navArgument("remoteUrl") { type = NavType.StringType }
+                navArgument("remoteUrl")   { type = NavType.StringType },
+                navArgument("cloudUri")    { type = NavType.StringType }
             )
         ) { back ->
             val projectPath = decodePath(back.arguments?.getString("projectPath") ?: "")
             val projectName = Uri.decode(back.arguments?.getString("projectName") ?: "")
-            val remoteUrl = Uri.decode(back.arguments?.getString("remoteUrl") ?: "").ifBlank { null }
+            val remoteUrl   = Uri.decode(back.arguments?.getString("remoteUrl") ?: "").ifBlank { null }
+            val cloudUri    = Uri.decode(back.arguments?.getString("cloudUri") ?: "").ifBlank { null }
 
             val vm: ExplorerViewModel = viewModel()
             ExplorerScreen(
                 viewModel = vm,
                 projectPath = projectPath,
                 projectName = projectName,
+                isCloudProject = cloudUri != null,
                 onOpenDocument = { handle, docName ->
                     navController.navigate(
                         "editor/${encodePath(projectPath)}/$handle/${Uri.encode(docName)}"
                     )
                 },
-                onOpenGit = {
-                    navController.navigate(
-                        "git/${encodePath(projectPath)}/${Uri.encode(projectName)}/${Uri.encode(remoteUrl ?: "")}"
-                    )
+                onOpenSync = {
+                    if (cloudUri != null) {
+                        navController.navigate(
+                            "cloudSync/${encodePath(projectPath)}/${Uri.encode(projectName)}/${Uri.encode(cloudUri)}"
+                        )
+                    } else {
+                        navController.navigate(
+                            "git/${encodePath(projectPath)}/${Uri.encode(projectName)}/${Uri.encode(remoteUrl ?: "")}"
+                        )
+                    }
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -191,12 +203,12 @@ fun NovelWriterApp() {
             arguments = listOf(
                 navArgument("projectPath") { type = NavType.StringType },
                 navArgument("projectName") { type = NavType.StringType },
-                navArgument("remoteUrl") { type = NavType.StringType }
+                navArgument("remoteUrl")   { type = NavType.StringType }
             )
         ) { back ->
             val projectPath = decodePath(back.arguments?.getString("projectPath") ?: "")
             val projectName = Uri.decode(back.arguments?.getString("projectName") ?: "")
-            val remoteUrl = Uri.decode(back.arguments?.getString("remoteUrl") ?: "").ifBlank { null }
+            val remoteUrl   = Uri.decode(back.arguments?.getString("remoteUrl") ?: "").ifBlank { null }
 
             val vm: GitViewModel = viewModel()
             GitScreen(
@@ -204,6 +216,29 @@ fun NovelWriterApp() {
                 projectPath = projectPath,
                 projectName = projectName,
                 remoteUrl = remoteUrl,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Cloud sync screen ─────────────────────────────────────────────
+        composable(
+            route = "cloudSync/{projectPath}/{projectName}/{cloudUri}",
+            arguments = listOf(
+                navArgument("projectPath") { type = NavType.StringType },
+                navArgument("projectName") { type = NavType.StringType },
+                navArgument("cloudUri")    { type = NavType.StringType }
+            )
+        ) { back ->
+            val projectPath = decodePath(back.arguments?.getString("projectPath") ?: "")
+            val projectName = Uri.decode(back.arguments?.getString("projectName") ?: "")
+            val cloudUri    = Uri.decode(back.arguments?.getString("cloudUri") ?: "")
+
+            val vm: CloudSyncViewModel = viewModel()
+            CloudSyncScreen(
+                viewModel = vm,
+                projectPath = projectPath,
+                projectName = projectName,
+                cloudUri = cloudUri,
                 onBack = { navController.popBackStack() }
             )
         }

@@ -25,8 +25,9 @@ fun ExplorerScreen(
     viewModel: ExplorerViewModel,
     projectPath: String,
     projectName: String,
+    isCloudProject: Boolean = false,
     onOpenDocument: (handle: String, name: String) -> Unit,
-    onOpenGit: () -> Unit,
+    onOpenSync: () -> Unit,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -59,8 +60,11 @@ fun ExplorerScreen(
                     IconButton(onClick = { viewModel.reload(projectPath) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Reload")
                     }
-                    IconButton(onClick = onOpenGit) {
-                        Icon(Icons.Default.Sync, contentDescription = "Git sync")
+                    IconButton(onClick = onOpenSync) {
+                        Icon(
+                            if (isCloudProject) Icons.Default.Cloud else Icons.Default.Sync,
+                            contentDescription = if (isCloudProject) "Cloud sync" else "Git sync"
+                        )
                     }
                 }
             )

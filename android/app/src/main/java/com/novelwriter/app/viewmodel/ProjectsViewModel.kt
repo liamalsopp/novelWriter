@@ -3,8 +3,11 @@ package com.novelwriter.app.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.novelwriter.app.data.repository.GitCredentials
+import android.net.Uri
 import com.novelwriter.app.data.model.LocalProject
+import com.novelwriter.app.data.model.StorageType
+import com.novelwriter.app.data.repository.CloudSyncRepository
+import com.novelwriter.app.data.repository.GitCredentials
 import com.novelwriter.app.data.repository.GitRepository
 import com.novelwriter.app.data.repository.GitResult
 import com.novelwriter.app.data.repository.ProjectRepository
@@ -24,6 +27,7 @@ class ProjectsViewModel(application: Application) : AndroidViewModel(application
 
     private val projectRepo = ProjectRepository(application)
     private val gitRepo = GitRepository(application)
+    private val cloudRepo = CloudSyncRepository(application)
 
     private val _uiState = MutableStateFlow(ProjectsUiState())
     val uiState: StateFlow<ProjectsUiState> = _uiState.asStateFlow()
@@ -88,6 +92,33 @@ class ProjectsViewModel(application: Application) : AndroidViewModel(application
         )
         projectRepo.addProject(project)
         loadProjects()
+    }
+
+    fun openCloudFolder(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, message = null)
+            cloudRepo.takePersistablePermission(uri)
+            val folderName = cloudRepo.getFolderName(uri)
+            val targetDir = File(projectRepo.projectsDir, folderName)
+            val success = cloudRepo.copyFromCloud(uri, targetDir)
+            if (success) {
+                val parsed = projectRepo.parseProject(targetDir.absolutePath)
+                val project = LocalProject(
+                    name = parsed?.name?.takeIf { it.isNotBlank() } ?: folderName,
+                    path = targetDir.absolutePath,
+                    storageType = StorageType.CLOUD_FOLDER,
+                    cloudUri = uri.toString()
+                )
+                projectRepo.addProject(project)
+                loadProjects()
+                _uiState.value = _uiState.value.copy(isLoading = false, message = "Opened \"${project.name}\"")
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    message = "Could not open project — make sure the folder contains nwProject.nwx"
+                )
+            }
+        }
     }
 
     fun removeProject(path: String) {
