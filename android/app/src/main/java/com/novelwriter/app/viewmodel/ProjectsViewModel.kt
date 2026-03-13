@@ -3,7 +3,7 @@ package com.novelwriter.app.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.novelwriter.app.data.model.GitCredentials
+import com.novelwriter.app.data.repository.GitCredentials
 import com.novelwriter.app.data.model.LocalProject
 import com.novelwriter.app.data.repository.GitRepository
 import com.novelwriter.app.data.repository.GitResult

@@ -5,6 +5,7 @@ import com.novelwriter.app.data.model.NWItem
 import com.novelwriter.app.data.model.NWItemClass
 import com.novelwriter.app.data.model.NWItemLayout
 import com.novelwriter.app.data.model.NWItemType
+import com.novelwriter.app.data.model.NWDocument
 import com.novelwriter.app.data.model.NWProject
 import org.xmlpull.v1.XmlPullParser
 import java.io.File
