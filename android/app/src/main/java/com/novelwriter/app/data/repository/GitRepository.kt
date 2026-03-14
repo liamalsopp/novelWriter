@@ -7,6 +7,7 @@ import com.novelwriter.app.data.model.LocalProject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.transport.RemoteRefUpdate
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import java.io.File
 
@@ -130,10 +131,20 @@ class GitRepository(context: Context) {
             try {
                 Git.open(File(projectPath)).use { git ->
                     val effectiveUrl = remoteUrl ?: getRemoteUrl(projectPath)
-                    git.push()
+                    val pushResults = git.push()
                         .apply { credentialsProvider(effectiveUrl)?.let { setCredentialsProvider(it) } }
                         .call()
-                    GitResult.Success("Push successful")
+                    val rejected = pushResults
+                        .flatMap { it.remoteUpdates }
+                        .firstOrNull { it.status !in setOf(
+                            RemoteRefUpdate.Status.OK,
+                            RemoteRefUpdate.Status.UP_TO_DATE
+                        )}
+                    if (rejected != null) {
+                        GitResult.Error("Push rejected: ${rejected.status} — ${rejected.message ?: rejected.remoteName}")
+                    } else {
+                        GitResult.Success("Push successful")
+                    }
                 }
             } catch (e: Exception) {
                 GitResult.Error(e.message ?: "Push failed")
