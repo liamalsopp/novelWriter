@@ -118,7 +118,6 @@ fun EditorScreen(
                             .fillMaxSize()
                             .padding(horizontal = 4.dp)
                             .imePadding(),
-                        scrollState = scrollState,
                         textStyle = TextStyle(
                             fontFamily = FontFamily.Serif,
                             fontSize = 16.sp,
