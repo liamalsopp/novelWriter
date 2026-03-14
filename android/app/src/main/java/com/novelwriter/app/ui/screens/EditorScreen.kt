@@ -1,6 +1,7 @@
 package com.novelwriter.app.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -25,9 +26,18 @@ fun EditorScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showUnsavedDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    var initialScrollDone by remember { mutableStateOf(false) }
 
     LaunchedEffect(handle) {
         viewModel.loadDocument(projectPath, handle)
+    }
+
+    LaunchedEffect(uiState.document) {
+        if (uiState.document != null && !initialScrollDone) {
+            initialScrollDone = true
+            scrollState.scrollTo(scrollState.maxValue)
+        }
     }
 
     LaunchedEffect(uiState.message) {
@@ -106,7 +116,9 @@ fun EditorScreen(
                         onValueChange = { viewModel.updateContent(it) },
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 4.dp),
+                            .padding(horizontal = 4.dp)
+                            .imePadding(),
+                        scrollState = scrollState,
                         textStyle = TextStyle(
                             fontFamily = FontFamily.Serif,
                             fontSize = 16.sp,
